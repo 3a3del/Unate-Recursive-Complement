@@ -1,24 +1,26 @@
 import sys
 
+# Set the recursion limit to 1500
 sys.setrecursionlimit(1500)
 
+# Function to read a cube file and return the number of variables, number of cubes, and the cubes themselves
 def read_cube_file(file_path):
     try:
         with open(file_path, 'r') as file:
-            num_variables = int(file.readline().strip())
-            num_cubes = int(file.readline().strip())
+            num_variables = int(file.readline().strip())  # Read number of variables
+            num_cubes = int(file.readline().strip())  # Read number of cubes
             cubes = []
             for _ in range(num_cubes):
-                line = file.readline().strip()
-                parts = list(map(int, line.split()))
-                num_non_dont_cares = parts[0]
-                variables = parts[1:num_non_dont_cares + 1]
-                formatted_variables = ['11'] * num_variables
+                line = file.readline().strip()  # Read each line (cube)
+                parts = list(map(int, line.split()))  # Split the line into integers
+                num_non_dont_cares = parts[0]  # First number is the count of non-don't-care variables
+                variables = parts[1:num_non_dont_cares + 1]  # Next numbers are the variables
+                formatted_variables = ['11'] * num_variables  # Initialize all to 'don't-care'
                 for var in variables:
                     if var > 0:
-                        formatted_variables[var - 1] = '01'
+                        formatted_variables[var - 1] = '01'  # Positive variable
                     else:
-                        formatted_variables[-var - 1] = '10'
+                        formatted_variables[-var - 1] = '10'  # Negative variable
                 cubes.append(formatted_variables)
             return num_variables, num_cubes, cubes
     except FileNotFoundError:
@@ -28,9 +30,11 @@ def read_cube_file(file_path):
         print(f"An error occurred: {e}")
         return None
 
+# Function to process the cubes (currently just a placeholder)
 def process_cubes(cubes):
     return cubes
 
+# Function to compute the complement of the cubes (using recursion)
 def complement(result, depth=0, max_depth=1000):
     if depth > max_depth:
         raise RecursionError("Maximum recursion depth exceeded")
@@ -46,27 +50,35 @@ def complement(result, depth=0, max_depth=1000):
 
     elif len(processed_cubes) == 1:
         return complement_single_cube(processed_cubes[0])
-    else :    
-          var_index = select_most_binate_variable(processed_cubes, num_variables)
-          x = f"x{var_index + 1}"
-          not_x = f"x{var_index + 1}'"
-          P_num_vars, P_cubes = positive_cofactor(processed_cubes, var_index)
-      # Debug print statement for positive cofactor
-          N_num_vars, N_cubes = negative_cofactor(processed_cubes, var_index)
-          P = complement((P_num_vars, len(P_cubes), P_cubes), depth + 1, max_depth)
-          N = complement((N_num_vars, len(N_cubes), N_cubes), depth + 1, max_depth)
-          P = and_operation(x, P)
-          N = and_operation(not_x, N)
-          result = or_operation(P, N)
-          print(result)
+    else:
+        var_index = select_most_binate_variable(processed_cubes, num_variables)
+        x = f"x{var_index + 1}"
+        not_x = f"x{var_index + 1}'"
+        
+        # Compute positive and negative cofactors
+        P_num_vars, P_cubes = positive_cofactor(processed_cubes, var_index)
+        N_num_vars, N_cubes = negative_cofactor(processed_cubes, var_index)
+        
+        # Recursively compute complements
+        P = complement((P_num_vars, len(P_cubes), P_cubes), depth + 1, max_depth)
+        N = complement((N_num_vars, len(N_cubes), N_cubes), depth + 1, max_depth)
+        
+        # Combine results using AND and OR operations
+        P = and_operation(x, P)
+        N = and_operation(not_x, N)
+        result = or_operation(P, N)
+        
     return result
 
+# Function to return a cube with all 'don't-care' values
 def all_dont_care_cube(num_variables):
     return [['11'] * num_variables]
 
+# Function to return an empty list of cubes
 def empty_cube_list():
     return []
 
+# Function to complement a single cube
 def complement_single_cube(cube):
     complemented_cubes = []
     for i in range(len(cube)):
@@ -79,12 +91,14 @@ def complement_single_cube(cube):
             complemented_cubes.append(new_cube)
     return complemented_cubes
 
+# Function to check if any cube contains all 'don't-care' values
 def contains_all_dont_care(cubes):
     for cube in cubes:
         if all(var == '11' for var in cube):
             return True
     return False
 
+# Function to select the most binate variable (one with both positive and negative occurrences)
 def select_most_binate_variable(cubes, num_variables):
     variable_stats = {i: {"true": 0, "complement": 0} for i in range(num_variables)}
 
@@ -140,6 +154,7 @@ def select_most_binate_variable(cubes, num_variables):
 
     return 0
 
+# Function to compute the positive cofactor of cubes with respect to a variable
 def positive_cofactor(cubes, var_index):
     cofactor = []
     for cube in cubes:
@@ -147,10 +162,10 @@ def positive_cofactor(cubes, var_index):
             new_cube = cube[:]
             if cube[var_index] == "01":
                 new_cube[var_index] = "11"
-            # Keep the cube unchanged if the value is "11"
             cofactor.append(new_cube)
     return len(cubes[0]), cofactor
 
+# Function to compute the negative cofactor of cubes with respect to a variable
 def negative_cofactor(cubes, var_index):
     cofactor = []
     for cube in cubes:
@@ -158,11 +173,10 @@ def negative_cofactor(cubes, var_index):
             new_cube = cube[:]
             if cube[var_index] == "10":
                 new_cube[var_index] = "11"
-            # Keep the cube unchanged if the value is "11"
             cofactor.append(new_cube)
     return len(cubes[0]), cofactor
 
-
+# Function to perform the AND operation on a variable and a set of cubes
 def and_operation(variable, cubes):
     var_index = int(variable[1:-1]) - 1 if variable.endswith("'") else int(variable[1:]) - 1
     
@@ -176,9 +190,11 @@ def and_operation(variable, cubes):
         new_cubes.append(new_cube)
     return new_cubes
 
+# Function to perform the OR operation on two sets of cubes
 def or_operation(P, N):
     return P + N
 
+# Function to write the result cubes to an output file
 def write_output_file(file_path, data):
     try:
         with open(file_path, 'w') as file:
@@ -187,7 +203,6 @@ def write_output_file(file_path, data):
             file.write(f"{num_variables}\n")
             file.write(f"{num_cubes}\n")
             for cube in data:
-                # Convert the cube variables to the required format
                 non_dont_cares = [
                     i + 1 if var == "01" else -(i + 1)
                     for i, var in enumerate(cube)
@@ -197,7 +212,7 @@ def write_output_file(file_path, data):
     except Exception as e:
         print(f"An error occurred while writing to the file: {e}")
 
-
+# Main function to read input file, compute complement, and write output file
 def main():
     file_path = 'C:\\Users\\hp\\Desktop\\VLSI\\input.txt'
     file_path_output = 'C:\\Users\\hp\\Desktop\\VLSI\\output.txt'
@@ -206,5 +221,6 @@ def main():
         F_prime = complement(result)
         write_output_file(file_path_output, F_prime)
 
+# Execute main function when script is run directly
 if __name__ == "__main__":
     main()
